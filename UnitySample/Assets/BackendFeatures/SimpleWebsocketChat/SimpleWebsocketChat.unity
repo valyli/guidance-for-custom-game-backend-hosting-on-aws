@@ -1523,8 +1523,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b7b74312be7c545d783309d9a7e5179d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  loginEndpointUrl: 
-  websocketEndpointUrl: 
+  loginEndpointUrl: https://vo5uwmok33.execute-api.us-east-1.amazonaws.com/prod/
+  websocketEndpointUrl: wss://dcyjpm178818w.cloudfront.net
   logOutput: {fileID: 451320948}
   usernameInput: {fileID: 552141107}
   JoinChannelInput: {fileID: 86469235}
