@@ -7,3 +7,4 @@ UnitySample/.DS_Store
 cdk.context.json
 BackendFeatures/SimpleWebsocketChat/package-lock.json
 node_modules
+package-lock.json

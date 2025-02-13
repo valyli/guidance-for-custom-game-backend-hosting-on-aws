@@ -1,11 +1,14 @@
 'use strict';
 
+const AWS = require('aws-sdk');
+
 // X-ray for distributed tracing
 var AWSXRay = require('aws-xray-sdk');
 AWSXRay.config([AWSXRay.plugins.ECSPlugin]);
 
-// AWS SDK with tracing
-const AWS = AWSXRay.captureAWS(require('aws-sdk'));
+// This sentence broke code tips. changed by valyli
+// // AWS SDK with tracing
+// const AWS = AWSXRay.captureAWS(require('aws-sdk'));
 
 // AWS-provided JWT verifier
 const { JwtRsaVerifier } = require("aws-jwt-verify");
@@ -59,6 +62,7 @@ wss.on('connection', async (ws, req) => {
   }
 
   try {
+    console.log("Test upgrade ====== 1");
     var payload = await verifier.verify(params.query.auth_token);
     console.log("Token is valid");
     // Add the user to the websocket map
@@ -140,6 +144,39 @@ async function handleMessage(ws, data) {
       const messageToPublish = JSON.stringify({ username, message });
       redisManager.publishToChannel(channel, messageToPublish);
       ws.send(JSON.stringify({ message: `Message sent to ${channel}: ${message}` }));
+
+      let aiMessage = "wait dev... update -- 02-13 07:15";
+      ws.send(JSON.stringify({ message: `AI Message sent to ${channel}: ${aiMessage}` }));
+
+
+      try {
+        const lambda = new AWS.Lambda();
+        const lambdaParams = {
+          FunctionName: 'ChatAi',
+          Payload: JSON.stringify({ message: message, username: username, channel: channel }), // 构建你的 payload
+        };
+  
+        lambda.invoke(lambdaParams, function(err, data) {
+          if (err) {
+            console.error("Error invoking Lambda:", err);
+            ws.send(JSON.stringify({ error: `Error invoking AI Lambda: ${err}` })); // 将错误发送给客户端
+          } else {
+            try {
+              const payload = JSON.parse(data.Payload);
+              console.log("Lambda Response:", payload);
+              // 将 Lambda 的响应发送给客户端
+              ws.send(JSON.stringify({ type: "ai_response", payload: payload })); //  假设Lambda返回了 {message: "AI的回复"}
+            } catch (parseError) {
+              console.error("Error parsing Lambda payload:", parseError);
+              ws.send(JSON.stringify({ error: `Error parsing AI response: ${parseError}` }));
+            }
+          }
+        });
+  
+      } catch (lambdaErr) {
+          console.error("Lambda调用出错:", lambdaErr)
+          ws.send(JSON.stringify({ error: `Error calling AI Lambda: ${lambdaErr}` }));
+      }
     }
 
     // Any other messages
