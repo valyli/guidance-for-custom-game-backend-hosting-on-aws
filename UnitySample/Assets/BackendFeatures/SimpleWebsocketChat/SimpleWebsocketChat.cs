@@ -253,6 +253,19 @@ public class SimpleWebsocketChat : MonoBehaviour
         // Add to the messages list so we can display this in the main thread
         this.messages.Add(message);
         
+        var aiResponse = JsonUtility.FromJson<AIResponse>(message);
+
+        if (aiResponse != null)
+        {
+            if (aiResponse.type != null)
+            {
+                if (aiResponse.type == "ai_response")
+                {
+                    this.talkHistory.Add($"{"玩家"} : {aiResponse.payload.body.response.completion}");
+                }
+            }
+        }
+        
         // TODO: Check the message and mark us as successfully connected
         this.connected = true;
     }
