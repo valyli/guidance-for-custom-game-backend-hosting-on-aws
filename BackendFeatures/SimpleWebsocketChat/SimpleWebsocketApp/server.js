@@ -82,7 +82,7 @@ wss.on('connection', async (ws, req) => {
     console.log('received: %s', data);
     handleMessage(ws, data);
   });
-
+    
   // Callback for disconnecting
   ws.on('close', function close() {
     try {
@@ -124,13 +124,14 @@ async function handleMessage(ws, data) {
     }
 
     // Receive message to a channel
-    else if (parsedData.type === "message") {
+    else if (parsedData.type === "message" || parsedData.type === "message_ai") {
       const userID = redisManager.websockets.get(ws);
       const username = await redisManager.getUsername(userID);
 
       console.log(`Message received: ${dataString} from ${ws}`);
       const channel = parsedData.payload.channel;
       const message = parsedData.payload.message;
+      const historyMessages = parsedData.payload.historyMessages;
 
       if (!username) {
         ws.send(JSON.stringify({ error: "You must set a username first" }));
@@ -145,15 +146,14 @@ async function handleMessage(ws, data) {
       redisManager.publishToChannel(channel, messageToPublish);
       ws.send(JSON.stringify({ message: `Message sent to ${channel}: ${message}` }));
 
-      let aiMessage = "wait dev... update -- 02-13 07:15";
-      ws.send(JSON.stringify({ message: `AI Message sent to ${channel}: ${aiMessage}` }));
-
-
+      // Send to ChatAI
+      let aiMessage = "wait dev... update -- 02-13 15:35";
+      ws.send(JSON.stringify({ message: `[debug msg] AI Message sent to ${channel}: ${aiMessage}` }));
       try {
         const lambda = new AWS.Lambda();
         const lambdaParams = {
           FunctionName: 'ChatAi',
-          Payload: JSON.stringify({ message: message, username: username, channel: channel }), // 构建你的 payload
+          Payload: JSON.stringify({ message: message, username: username, channel: channel, historyMessages: historyMessages }), // 构建你的 payload
         };
   
         lambda.invoke(lambdaParams, function(err, data) {
@@ -181,7 +181,7 @@ async function handleMessage(ws, data) {
 
     // Any other messages
     else {
-      ws.send(JSON.stringify({ error: "Invalid message" }));
+      ws.send(JSON.stringify({ error: `Invalid message - handleMessage. Unknown type == ${parsedData.type}` }));
     }
   } catch (err) {
     console.log(err);
@@ -194,6 +194,7 @@ async function handleMessage(ws, data) {
 // HEALTH CHECK SERVER for load balancer on 8080
 
 const express = require('express');
+const { parse } = require('path');
 
 // Server constants
 const PORT = 8080;

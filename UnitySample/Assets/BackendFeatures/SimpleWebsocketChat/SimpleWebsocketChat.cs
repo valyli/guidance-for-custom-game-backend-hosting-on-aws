@@ -22,10 +22,12 @@ public class SimpleWebsocketChat : MonoBehaviour
     public Button JoinChannelButton;
     public Button LeaveChannelButton;
     public Button SendMessageButton;
+    public Button SendMessageAiButton;
 
 
     // A list of messages received from the server
     private List<string> messages = new List<string>();
+    private List<string> talkHistory = new List<string>();
     private float messageTimer = 0.0f;
 
     private bool connected = false;
@@ -59,6 +61,7 @@ public class SimpleWebsocketChat : MonoBehaviour
         this.SetUserNameButton.onClick.AddListener(this.SetUserName);
         this.JoinChannelButton.onClick.AddListener(this.JoinChannel);
         this.SendMessageButton.onClick.AddListener(this.SendMessage);
+        this.SendMessageAiButton.onClick.AddListener(this.SendMessageAi);
         this.LeaveChannelButton.onClick.AddListener(this.LeaveChannel);
     }
 
@@ -158,6 +161,46 @@ public class SimpleWebsocketChat : MonoBehaviour
         request.payload.message = this.SendMessageInput.text;
         this.websocketClient.SendMessage(JsonUtility.ToJson(request));
     }
+
+    // Send to Ai
+    void SendMessageAi()
+    {
+        // If channel field is empty, return
+        if (this.ChannelNameInput.text == "")
+        {
+            Debug.Log("Channel field is empty");
+            this.logOutput.text += "Channel field is empty\n";
+            return;
+        }
+
+        // If message field is empty, return
+        if (this.SendMessageInput.text == "")
+        {
+            Debug.Log("Message field is empty");
+            this.logOutput.text += "Message field is empty\n";
+            return;
+        }
+
+        Debug.Log("Sending message to channel: " + this.ChannelNameInput.text);
+        this.logOutput.text += "Sending message to channel: " + this.ChannelNameInput.text + "\n";
+        
+        talkHistory.Add($"{this.usernameInput.text} : {this.SendMessageInput.text}");
+
+        // Define the MessageRequest and send over websocket
+        SendMessageAiRequest request = new SendMessageAiRequest();
+        request.type = "message_ai";
+        request.payload = new MessageAiData();
+        request.payload.channel = this.ChannelNameInput.text;
+        request.payload.message = this.SendMessageInput.text;
+        request.payload.historyMessages = talkHistory;
+        this.websocketClient.SendMessage(JsonUtility.ToJson(request));
+    }
+
+    // private new List<HistoryMessageData> BuildHistoryMessageData()
+    // {
+    //     List<HistoryMessageData> historyMessages = new List<HistoryMessageData>();
+    //     
+    // }
 
     // Update is called once per frame
     void Update()
