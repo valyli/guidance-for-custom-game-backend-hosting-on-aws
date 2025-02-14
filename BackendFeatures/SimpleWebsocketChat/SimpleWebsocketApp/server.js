@@ -147,35 +147,37 @@ async function handleMessage(ws, data) {
       ws.send(JSON.stringify({ message: `Message sent to ${channel}: ${message}` }));
 
       // Send to ChatAI
-      let aiMessage = "wait dev... update -- 02-13 15:35";
-      ws.send(JSON.stringify({ message: `[debug msg] AI Message sent to ${channel}: ${aiMessage}` }));
-      try {
-        const lambda = new AWS.Lambda();
-        const lambdaParams = {
-          FunctionName: 'ChatAi',
-          Payload: JSON.stringify({ message: message, username: username, channel: channel, historyMessages: historyMessages }), // 构建你的 payload
-        };
-  
-        lambda.invoke(lambdaParams, function(err, data) {
-          if (err) {
-            console.error("Error invoking Lambda:", err);
-            ws.send(JSON.stringify({ error: `Error invoking AI Lambda: ${err}` })); // 将错误发送给客户端
-          } else {
-            try {
-              const payload = JSON.parse(data.Payload);
-              console.log("Lambda Response:", payload);
-              // 将 Lambda 的响应发送给客户端
-              ws.send(JSON.stringify({ type: "ai_response", payload: payload })); //  假设Lambda返回了 {message: "AI的回复"}
-            } catch (parseError) {
-              console.error("Error parsing Lambda payload:", parseError);
-              ws.send(JSON.stringify({ error: `Error parsing AI response: ${parseError}` }));
+      if (parsedData.type === "message_ai") {
+        let aiMessage = "wait dev... update -- 02-13 15:35";
+        ws.send(JSON.stringify({ message: `[debug msg] AI Message send to ${channel}: ${aiMessage}` }));
+        try {
+          const lambda = new AWS.Lambda();
+          const lambdaParams = {
+            FunctionName: 'ChatAi',
+            Payload: JSON.stringify({ message: message, username: username, channel: channel, historyMessages: historyMessages }), // 构建你的 payload
+          };
+    
+          lambda.invoke(lambdaParams, function(err, data) {
+            if (err) {
+              console.error("Error invoking Lambda:", err);
+              ws.send(JSON.stringify({ error: `Error invoking AI Lambda: ${err}` })); // 将错误发送给客户端
+            } else {
+              try {
+                const payload = JSON.parse(data.Payload);
+                console.log("Lambda Response:", payload);
+                // 将 Lambda 的响应发送给客户端
+                ws.send(JSON.stringify({ type: "ai_response", payload: payload })); //  假设Lambda返回了 {message: "AI的回复"}
+              } catch (parseError) {
+                console.error("Error parsing Lambda payload:", parseError);
+                ws.send(JSON.stringify({ error: `Error parsing AI response: ${parseError}` }));
+              }
             }
-          }
-        });
-  
-      } catch (lambdaErr) {
-          console.error("Lambda调用出错:", lambdaErr)
-          ws.send(JSON.stringify({ error: `Error calling AI Lambda: ${lambdaErr}` }));
+          });
+    
+        } catch (lambdaErr) {
+            console.error("Lambda Error: ", lambdaErr)
+            ws.send(JSON.stringify({ error: `Error calling AI Lambda: ${lambdaErr}` }));
+        }
       }
     }
 
