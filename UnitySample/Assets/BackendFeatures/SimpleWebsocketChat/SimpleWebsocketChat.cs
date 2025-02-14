@@ -17,6 +17,7 @@ public class SimpleWebsocketChat : MonoBehaviour
     public InputField usernameInput;
     public InputField JoinChannelInput;
     public InputField ChannelNameInput;
+    public InputField SystemPromptInput;
     public InputField SendMessageInput;
     public Button SetUserNameButton;
     public Button JoinChannelButton;
@@ -149,7 +150,7 @@ public class SimpleWebsocketChat : MonoBehaviour
             this.logOutput.text += "Message field is empty\n";
             return;
         }
-
+        
         Debug.Log("Sending message to channel: " + this.ChannelNameInput.text);
         this.logOutput.text += "Sending message to channel: " + this.ChannelNameInput.text + "\n";
 
@@ -192,6 +193,8 @@ public class SimpleWebsocketChat : MonoBehaviour
         request.payload = new MessageAiData();
         request.payload.channel = this.ChannelNameInput.text;
         request.payload.message = this.SendMessageInput.text;
+        request.payload.model_id = "nova-lite";
+        request.payload.system_prompt = this.SystemPromptInput.text;//"现在你正在和其他玩家进行游戏，你和其他玩家在聊天频道中聊天。你是其中的一名玩家。你的性格很搞笑，说话精辟，人狠话不多那种。当其他玩家怀疑你是AI时，你将进入其他话题。";
         request.payload.historyMessages = talkHistory;
         this.websocketClient.SendMessage(JsonUtility.ToJson(request));
     }

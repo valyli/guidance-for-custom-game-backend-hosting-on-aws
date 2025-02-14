@@ -131,6 +131,8 @@ async function handleMessage(ws, data) {
       console.log(`Message received: ${dataString} from ${ws}`);
       const channel = parsedData.payload.channel;
       const message = parsedData.payload.message;
+      const model_id = parsedData.payload.model_id;
+      const system_prompt = parsedData.payload.system_prompt;
       const historyMessages = parsedData.payload.historyMessages;
 
       if (!username) {
@@ -154,7 +156,14 @@ async function handleMessage(ws, data) {
           const lambda = new AWS.Lambda();
           const lambdaParams = {
             FunctionName: 'ChatAi',
-            Payload: JSON.stringify({ message: message, username: username, channel: channel, historyMessages: historyMessages }), // 构建你的 payload
+            Payload: JSON.stringify({
+              message: message, 
+              username: username, 
+              channel: channel, 
+              model_id: model_id, 
+              system_prompt: system_prompt,
+              historyMessages: historyMessages
+            }), // 构建你的 payload
           };
     
           lambda.invoke(lambdaParams, function(err, data) {

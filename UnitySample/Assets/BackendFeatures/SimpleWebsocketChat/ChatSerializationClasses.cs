@@ -49,6 +49,8 @@ public class MessageAiData
 {
     public string message;
     public string channel;
+    public string model_id;
+    public string system_prompt;
     public List<string> historyMessages;
 }
 
