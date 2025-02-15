@@ -192,7 +192,7 @@ public class SimpleWebsocketChat : MonoBehaviour
         SendMessageAiRequest request = new SendMessageAiRequest();
         request.type = "message_ai";
         request.payload = new MessageAiData();
-        request.payload.enable_debug = false;
+        request.payload.enable_debug = true;
         request.payload.channel = this.ChannelNameInput.text;
         request.payload.message = this.SendMessageInput.text;
         request.payload.model_id = "nova-lite";
@@ -272,7 +272,7 @@ public class SimpleWebsocketChat : MonoBehaviour
                     }
                     else if (aiResponse.type == "ai_debug")
                     {
-                        // this.talkHistory.Add($"{"AI debug"} : {aiResponse.payload}");
+                        Debug.LogWarning($"ai_debug: {aiResponse.payload.body.response_msg}");
                     }
                 }
             }
