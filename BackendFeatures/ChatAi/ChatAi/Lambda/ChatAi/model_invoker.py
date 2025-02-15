@@ -27,7 +27,9 @@ def invoke_claude_v2(talk_history: str, system_prompt: str):
     )
 
     response_body = json.loads(response["body"].read().decode("utf-8"))
-    return response_body
+    print(response_body)
+    output_txt = response_body['completion']
+    return output_txt
 
 
 def invoke_nova_lite(talk_history: str, system_prompt: str):    
@@ -44,7 +46,7 @@ def invoke_nova_lite(talk_history: str, system_prompt: str):
     message_list = [{"role": "user", "content": [{"text": talk_history}]}]
 
     # Configure the inference parameters.
-    inf_params = {"max_new_tokens": 500, "top_p": 0.9, "top_k": 20, "temperature": 0.7}
+    inf_params = {"max_new_tokens": 100, "top_p": 0.9, "top_k": 10, "temperature": 0.7}
 
     request_body = {
         "schemaVersion": "messages-v1",

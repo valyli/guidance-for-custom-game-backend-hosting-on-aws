@@ -27,6 +27,7 @@ def invoke_claude_v2(talk_history: str, system_prompt: str):
     )
 
     response_body = json.loads(response["body"].read().decode("utf-8"))
+    output_txt = response_body['completion']
     return response_body
 
 

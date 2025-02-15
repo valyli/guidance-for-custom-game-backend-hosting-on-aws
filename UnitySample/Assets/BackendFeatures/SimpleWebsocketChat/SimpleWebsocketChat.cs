@@ -195,7 +195,7 @@ public class SimpleWebsocketChat : MonoBehaviour
         request.payload.enable_debug = true;
         request.payload.channel = this.ChannelNameInput.text;
         request.payload.message = this.SendMessageInput.text;
-        request.payload.model_id = "nova-lite";
+        request.payload.model_id = "claude-v2";   // "nova-lite";
         request.payload.system_prompt = this.SystemPromptInput.text;//"现在你正在和其他玩家进行游戏，你和其他玩家在聊天频道中聊天。你是其中的一名玩家。你的性格很搞笑，说话精辟，人狠话不多那种。当其他玩家怀疑你是AI时，你将进入其他话题。";
         request.payload.historyMessages = talkHistory;
         this.websocketClient.SendMessage(JsonUtility.ToJson(request));
