@@ -2,9 +2,12 @@
 // SPDX-License-Identifier: MIT-0
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.UIElements;
+using Button = UnityEngine.UI.Button;
 
 public class SimpleWebsocketChat : MonoBehaviour
 {
@@ -25,7 +28,9 @@ public class SimpleWebsocketChat : MonoBehaviour
     public Button LeaveChannelButton;
     public Button SendMessageButton;
     public Button SendMessageAiButton;
+    public ScrollRect ChatScrollRect;
 
+    private bool refreshForNewMessage = false;
 
     // A list of messages received from the server
     private List<string> messages = new List<string>();
@@ -184,8 +189,8 @@ public class SimpleWebsocketChat : MonoBehaviour
         }
 
         Debug.Log("Sending message to channel: " + this.ChannelNameInput.text);
-        this.logOutput.text += "Sending message to channel: " + this.ChannelNameInput.text + "\n";
-        
+        // this.logOutput.text += "Sending message to channel: " + this.ChannelNameInput.text + "\n";
+        this.messages.Add($"{this.usernameInput.text} : {this.SendMessageInput.text}");
         talkHistory.Add($"{this.usernameInput.text} : {this.SendMessageInput.text}");
 
         // Define the MessageRequest and send over websocket
@@ -195,7 +200,7 @@ public class SimpleWebsocketChat : MonoBehaviour
         request.payload.enable_debug = true;
         request.payload.channel = this.ChannelNameInput.text;
         request.payload.message = this.SendMessageInput.text;
-        request.payload.model_id = "claude-v2";   // "nova-lite";
+        request.payload.model_id = "nova-lite";//"claude-v2";   // "nova-lite";
         request.payload.system_prompt = this.SystemPromptInput.text;//"现在你正在和其他玩家进行游戏，你和其他玩家在聊天频道中聊天。你是其中的一名玩家。你的性格很搞笑，说话精辟，人狠话不多那种。当其他玩家怀疑你是AI时，你将进入其他话题。";
         request.payload.historyMessages = talkHistory;
         this.websocketClient.SendMessage(JsonUtility.ToJson(request));
@@ -223,6 +228,21 @@ public class SimpleWebsocketChat : MonoBehaviour
         {
             this.logOutput.text = this.logOutput.text.Substring(this.logOutput.text.IndexOf('\n') + 1);
         }
+
+        if (this.refreshForNewMessage)
+        {
+            this.refreshForNewMessage = false;
+            LayoutRebuilder.ForceRebuildLayoutImmediate(this.logOutput.rectTransform); // 重新计算布局
+            Canvas.ForceUpdateCanvases(); // 强制更新 UI
+            ChatScrollRect.verticalNormalizedPosition = 0f; // 滚动到底部
+            StartCoroutine(ScrollToBottom());
+        }
+    }
+    
+    IEnumerator ScrollToBottom()
+    {
+        yield return null; // 等待一帧
+        ChatScrollRect.verticalNormalizedPosition = 0f;
     }
 
     // Triggered by the SDK if there's any login error or error refreshing access token
@@ -255,8 +275,6 @@ public class SimpleWebsocketChat : MonoBehaviour
     void OnWebsocketMessage(string message)
     {
         Debug.Log("Websocket message: " + message);
-        // Add to the messages list so we can display this in the main thread
-        this.messages.Add(message);
 
         try
         {
@@ -268,12 +286,20 @@ public class SimpleWebsocketChat : MonoBehaviour
                 {
                     if (aiResponse.type == "ai_response")
                     {
-                        this.talkHistory.Add($"{"我自己"} : {aiResponse.payload.body.response_msg}");
+                        var displayText = $"{"我自己"} : {aiResponse.payload.body.response_msg}";
+                        // Add to the messages list so we can display this in the main thread
+                        this.messages.Add(displayText);
+                        
+                        this.talkHistory.Add(displayText);
                     }
                     else if (aiResponse.type == "ai_debug")
                     {
-                        Debug.LogWarning($"ai_debug: {aiResponse.payload.body.response_msg}");
+                        var displayText = $"ai_debug: {aiResponse.payload.body.response_msg}";
+                        this.messages.Add(displayText);
+                        Debug.LogWarning(displayText);
                     }
+                    
+                    this.refreshForNewMessage = true;
                 }
             }
         }
