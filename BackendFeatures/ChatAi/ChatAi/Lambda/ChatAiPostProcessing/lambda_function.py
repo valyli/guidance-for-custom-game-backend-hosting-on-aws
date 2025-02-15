@@ -44,6 +44,6 @@ def lambda_handler(event, context):
     return {
         'statusCode': 200 if is_valid else 300,
         'body': {
-            'response_msg': event["message"] if is_valid else f"[Post] Invalid message, should stop AI. r = {invalid_reason}"
+            'response_msg': event["message"] if is_valid else f"[Post] Invalid message, should stop AI. r = {invalid_reason}, msg = {message}"
         }
     }

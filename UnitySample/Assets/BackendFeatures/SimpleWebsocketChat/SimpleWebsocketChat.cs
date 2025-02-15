@@ -4,6 +4,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.UIElements;
@@ -29,6 +30,8 @@ public class SimpleWebsocketChat : MonoBehaviour
     public Button SendMessageButton;
     public Button SendMessageAiButton;
     public ScrollRect ChatScrollRect;
+    public TMP_Dropdown AiModelDropdown;
+
 
     private bool refreshForNewMessage = false;
 
@@ -38,6 +41,8 @@ public class SimpleWebsocketChat : MonoBehaviour
     private float messageTimer = 0.0f;
 
     private bool connected = false;
+    
+    private string currentAiModel = "";
 
     // Start is called before the first frame update
     void Start()
@@ -70,6 +75,19 @@ public class SimpleWebsocketChat : MonoBehaviour
         this.SendMessageButton.onClick.AddListener(this.SendMessage);
         this.SendMessageAiButton.onClick.AddListener(this.SendMessageAi);
         this.LeaveChannelButton.onClick.AddListener(this.LeaveChannel);
+        
+        AiModelDropdown.options.Clear();
+        AiModelDropdown.options.Add(new TMP_Dropdown.OptionData("nova-lite"));
+        AiModelDropdown.options.Add(new TMP_Dropdown.OptionData("claude-v2"));
+        AiModelDropdown.RefreshShownValue();
+        AiModelDropdown.onValueChanged.AddListener(OnDropdownValueChanged);
+        this.currentAiModel = AiModelDropdown.options[AiModelDropdown.value].text;
+    }
+    
+    void OnDropdownValueChanged(int index)
+    {
+        Debug.Log("Change model to: " + AiModelDropdown.options[index].text);
+        this.currentAiModel = AiModelDropdown.options[index].text;
     }
 
     // Define the callbacks for the UI buttons
@@ -200,7 +218,7 @@ public class SimpleWebsocketChat : MonoBehaviour
         request.payload.enable_debug = true;
         request.payload.channel = this.ChannelNameInput.text;
         request.payload.message = this.SendMessageInput.text;
-        request.payload.model_id = "nova-lite";//"claude-v2";   // "nova-lite";
+        request.payload.model_id = this.currentAiModel;
         request.payload.system_prompt = this.SystemPromptInput.text;//"现在你正在和其他玩家进行游戏，你和其他玩家在聊天频道中聊天。你是其中的一名玩家。你的性格很搞笑，说话精辟，人狠话不多那种。当其他玩家怀疑你是AI时，你将进入其他话题。";
         request.payload.historyMessages = talkHistory;
         this.websocketClient.SendMessage(JsonUtility.ToJson(request));
