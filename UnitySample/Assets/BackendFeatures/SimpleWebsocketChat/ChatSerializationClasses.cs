@@ -47,6 +47,7 @@ public class MessageData
 [Serializable]
 public class MessageAiData
 {
+    public bool enable_debug;
     public string message;
     public string channel;
     public string model_id;

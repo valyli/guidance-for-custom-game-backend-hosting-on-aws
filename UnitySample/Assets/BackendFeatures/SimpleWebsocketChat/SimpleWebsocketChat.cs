@@ -1,6 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
 
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -191,6 +192,7 @@ public class SimpleWebsocketChat : MonoBehaviour
         SendMessageAiRequest request = new SendMessageAiRequest();
         request.type = "message_ai";
         request.payload = new MessageAiData();
+        request.payload.enable_debug = false;
         request.payload.channel = this.ChannelNameInput.text;
         request.payload.message = this.SendMessageInput.text;
         request.payload.model_id = "nova-lite";
@@ -255,19 +257,31 @@ public class SimpleWebsocketChat : MonoBehaviour
         Debug.Log("Websocket message: " + message);
         // Add to the messages list so we can display this in the main thread
         this.messages.Add(message);
-        
-        var aiResponse = JsonUtility.FromJson<AIResponse>(message);
 
-        if (aiResponse != null)
+        try
         {
-            if (aiResponse.type != null)
+            var aiResponse = JsonUtility.FromJson<AIResponse>(message);
+
+            if (aiResponse != null)
             {
-                if (aiResponse.type == "ai_response")
+                if (aiResponse.type != null)
                 {
-                    this.talkHistory.Add($"{"玩家"} : {aiResponse.payload.body.response.completion}");
+                    if (aiResponse.type == "ai_response")
+                    {
+                        this.talkHistory.Add($"{"我自己"} : {aiResponse.payload.body.response_msg}");
+                    }
+                    else if (aiResponse.type == "ai_debug")
+                    {
+                        // this.talkHistory.Add($"{"AI debug"} : {aiResponse.payload}");
+                    }
                 }
             }
         }
+        catch (Exception e)
+        {
+            Debug.LogError(e);
+        }
+
         
         // TODO: Check the message and mark us as successfully connected
         this.connected = true;

@@ -12,7 +12,7 @@ public class Body
 {
     public string message;
     public Event @event;
-    public Response response;
+    public string response_msg;
 }
 
 [System.Serializable]
