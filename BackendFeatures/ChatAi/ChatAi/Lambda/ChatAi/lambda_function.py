@@ -1,37 +1,24 @@
 import json
 import boto3
 from botocore.exceptions import ClientError
+from model_invoker import invoke_claude_v2, invoke_nova_lite
 
 bedrock = boto3.client("bedrock-runtime")
 
 
 def lambda_handler(event, context):
 
-    print("{}".format(event))
+    model_id = event["model_id"]
+    print(model_id)
+    system_prompt = event["system_prompt"]
     talk_history = "\n ".join(event["historyMessages"])
 
-    model_id = "anthropic.claude-v2"  # 也可以使用 "amazon.titan-text-lite-v1" 等
-    
-    # prompt = event.get("prompt", "Hello, how can I help you?")
-    user_input = event.get("prompt", talk_history)
-    
-    # Claude 需要以 "\n\nHuman:" 开头
-    formatted_prompt = f"\n\nHuman: {user_input}\n\nAssistant:"
-
-    request_body = {
-        "prompt": formatted_prompt,
-        "max_tokens_to_sample": 200  # 限制输出最大 token 数
-    }
-    
-    # 调用 Bedrock API
-    response = bedrock.invoke_model(
-        modelId=model_id,
-        body=json.dumps(request_body)
-    )
-    
-    # 解析返回结果
-    response_msg = json.loads(response["body"].read().decode("utf-8"))
-    
+    response_msg = None
+    if model_id == "claude-v2":
+        response_msg = invoke_claude_v2(talk_history, system_prompt)
+    elif model_id == "nova-lite":
+        response_msg = invoke_nova_lite(talk_history, system_prompt)
+        
     return {
         'statusCode': 200,
         # 'body': json.dumps('Hello from Lambda!')
