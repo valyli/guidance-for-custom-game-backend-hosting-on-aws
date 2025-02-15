@@ -41,7 +41,7 @@ def invoke_nova_lite(talk_history: str, system_prompt: str):
     ]
 
     # Define one or more messages using the "user" and "assistant" roles.
-    message_list = [{"role": "user", "content": [{"text": "talk_history"}]}]
+    message_list = [{"role": "user", "content": [{"text": talk_history}]}]
 
     # Configure the inference parameters.
     inf_params = {"max_new_tokens": 500, "top_p": 0.9, "top_k": 20, "temperature": 0.7}

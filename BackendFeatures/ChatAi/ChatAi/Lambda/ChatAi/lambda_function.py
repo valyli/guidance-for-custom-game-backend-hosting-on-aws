@@ -30,14 +30,12 @@ def lambda_handler(event, context):
     )
     
     # 解析返回结果
-    response_body = json.loads(response["body"].read().decode("utf-8"))
+    response_msg = json.loads(response["body"].read().decode("utf-8"))
     
     return {
         'statusCode': 200,
         # 'body': json.dumps('Hello from Lambda!')
         'body': {
-            'message': 'Hello from Lambda!',
-            'event': event,
-            'response': response_body
+            'response_msg': response_msg
         }
     }

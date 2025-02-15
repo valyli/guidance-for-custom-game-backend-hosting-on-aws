@@ -150,43 +150,30 @@ async function handleMessage(ws, data) {
 
       // Send to ChatAI
       if (parsedData.type === "message_ai") {
-        let aiMessage = "wait dev... update -- 02-13 15:35";
-        ws.send(JSON.stringify({ message: `[debug msg] AI Message send to ${channel}: ${aiMessage}` }));
-        try {
-          const lambda = new AWS.Lambda();
-          const lambdaParams = {
-            FunctionName: 'ChatAi',
-            Payload: JSON.stringify({
-              message: message, 
-              username: username, 
-              channel: channel, 
-              model_id: model_id, 
-              system_prompt: system_prompt,
-              historyMessages: historyMessages
-            }), // 构建你的 payload
-          };
-    
-          lambda.invoke(lambdaParams, function(err, data) {
-            if (err) {
-              console.error("Error invoking Lambda:", err);
-              ws.send(JSON.stringify({ error: `Error invoking AI Lambda: ${err}` })); // 将错误发送给客户端
-            } else {
-              try {
-                const payload = JSON.parse(data.Payload);
-                console.log("Lambda Response:", payload);
-                // 将 Lambda 的响应发送给客户端
-                ws.send(JSON.stringify({ type: "ai_response", payload: payload })); //  假设Lambda返回了 {message: "AI的回复"}
-              } catch (parseError) {
-                console.error("Error parsing Lambda payload:", parseError);
-                ws.send(JSON.stringify({ error: `Error parsing AI response: ${parseError}` }));
-              }
-            }
-          });
-    
-        } catch (lambdaErr) {
-            console.error("Lambda Error: ", lambdaErr)
-            ws.send(JSON.stringify({ error: `Error calling AI Lambda: ${lambdaErr}` }));
+
+        // 1. Invoke Pre-Processing Lambda
+        const pre_payload = await invokeChatAi(ws, 'ChatAiPreProcessing', message, username, channel, model_id, system_prompt, historyMessages);
+        if (pre_payload.statusCode != 200) {
+          console.error("ChatAiPreProcessing failed. pre_payload: ", pre_payload);
+          return;
         }
+        console.log(`1. Invoke Pre-Processing Lambda: pre_payload = `, pre_payload);
+        console.log(`1. Invoke Pre-Processing Lambda: pre_payload.data = `, pre_payload.body);
+        // 2. Invoke ChatAi Lambda
+        const payload = await invokeChatAi(ws, 'ChatAi', pre_payload.body.response_msg, username, channel, model_id, system_prompt, historyMessages);
+        if (payload.statusCode != 200) {
+          console.error("ChatAi failed. payload: ", payload);
+          return;
+        }
+        // 3. Invoke Post-Processing Lambda
+        const post_payload = await invokeChatAi(ws, 'ChatAiPostProcessing', payload.body.response_msg, username, channel, model_id, system_prompt, historyMessages);
+        if (post_payload.statusCode != 200) {
+          console.error("ChatAiPostProcessing failed. post_payload: ", post_payload);
+          return;
+        }
+
+        // Send AI response to client
+        ws.send(JSON.stringify({ type: "ai_response", response_msg: post_payload.body.response_msg }));
       }
     }
 
@@ -198,6 +185,56 @@ async function handleMessage(ws, data) {
     console.log(err);
     ws.send(JSON.stringify({ error: `Error handling message: ${err}` }));
   }
+}
+
+async function invokeChatAi(ws, functionName, message, username, channel, model_id, system_prompt, historyMessages) {
+  try {
+    const lambda = new AWS.Lambda();
+    const lambdaParams = {
+      FunctionName: functionName,
+      Payload: JSON.stringify({
+        message: message, 
+        username: username, 
+        channel: channel, 
+        model_id: model_id, 
+        system_prompt: system_prompt,
+        historyMessages: historyMessages
+      }), // 构建你的 payload
+    };
+
+    // lambda.invoke(lambdaParams, function(err, data) {
+    //   if (err) {
+    //     console.error("Error invoking Lambda:", err);
+    //     ws.send(JSON.stringify({ error: `Error invoking AI Lambda: ${err}` }));
+    //   } else {
+    //     try {
+    //       const payload = JSON.parse(data.Payload);
+    //       console.log(`Lambda Response (${functionName}):`, payload);
+    //       return payload;
+    //     } catch (parseError) {
+    //       console.error("Error parsing Lambda payload:", parseError);
+    //       ws.send(JSON.stringify({ error: `Error parsing AI response: ${parseError}` }));
+    //     }
+    //   }
+    // });
+
+    try {
+      console.log(`Lambda Request (${functionName}):`, lambdaParams);
+      const data = await lambda.invoke(lambdaParams).promise(); // 使用 promise()
+      console.log(`==> Lambda Response (${functionName}):`, data.Payload);
+      const payload = JSON.parse(data.Payload);
+      console.log(`--> Lambda Response (${functionName}):`, payload);
+      return payload;
+    } catch (err) {
+      console.error("Error invoking Lambda:", err);
+      throw err;
+    }
+
+  } catch (lambdaErr) {
+      console.error("Lambda Error: ", lambdaErr)
+      ws.send(JSON.stringify({ error: `Error calling AI Lambda: ${lambdaErr}` }));
+  }
+  return false;
 }
 
 // *********** //
