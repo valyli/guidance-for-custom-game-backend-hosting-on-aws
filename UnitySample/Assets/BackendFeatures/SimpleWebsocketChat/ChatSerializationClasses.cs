@@ -55,6 +55,8 @@ public class MessageAiData
     public string system_prompt;
     public List<string> historyMessages;
     public string action_history;
+    public bool enable_pre_processing;
+    public bool enable_post_processing;
 }
 
 [Serializable]

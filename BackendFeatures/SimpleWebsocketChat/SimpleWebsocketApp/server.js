@@ -147,6 +147,8 @@ async function handleMessage(ws, data) {
       const system_prompt = parsedData.payload.system_prompt;
       const action_history = parsedData.payload.action_history;
       const historyMessages = parsedData.payload.historyMessages;
+      const enable_pre_processing = parsedData.payload.enable_pre_processing;
+      const enable_post_processing = parsedData.payload.enable_post_processing;
 
       let enable_debug = false;
       if (parsedData.type === "message_ai") {
@@ -178,18 +180,23 @@ async function handleMessage(ws, data) {
       // Send to ChatAI
       if (parsedData.type === "message_ai") {
 
+        let next_step_message = message;
+
         // 1. Invoke Pre-Processing Lambda
-        const pre_payload = await invokeChatAi(ws, 'ChatAiPreProcessing', message, username, channel, model_id, system_prompt, action_history, historyMessages);
-        if (pre_payload.statusCode != 200) {
-          console.error("ChatAiPreProcessing failed. pre_payload: ", pre_payload);
-          if (enable_debug) {
-            ws.send(JSON.stringify({ type: "ai_debug", payload: pre_payload }));
+        if (enable_pre_processing) {
+          const pre_payload = await invokeChatAi(ws, 'ChatAiPreProcessing', next_step_message, username, channel, model_id, system_prompt, action_history, historyMessages);
+          if (pre_payload.statusCode != 200) {
+            console.error("ChatAiPreProcessing failed. pre_payload: ", pre_payload);
+            if (enable_debug) {
+              ws.send(JSON.stringify({ type: "ai_debug", payload: pre_payload }));
+            }
+            return;
           }
-          return;
+          next_step_message = pre_payload.body.response_msg;
         }
 
         // 2. Invoke ChatAi Lambda
-        const payload = await invokeChatAi(ws, 'ChatAi', pre_payload.body.response_msg, username, channel, model_id, system_prompt, action_history, historyMessages);
+        const payload = await invokeChatAi(ws, 'ChatAi', next_step_message, username, channel, model_id, system_prompt, action_history, historyMessages);
         if (payload.statusCode != 200) {
           console.error("ChatAi failed. payload: ", payload);
           if (enable_debug) {
@@ -197,19 +204,24 @@ async function handleMessage(ws, data) {
           }
           return;
         }
+        next_step_message = payload.body.response_msg;
+        let next_step_paylod = payload;
 
         // 3. Invoke Post-Processing Lambda
-        const post_payload = await invokeChatAi(ws, 'ChatAiPostProcessing', payload.body.response_msg, username, channel, model_id, system_prompt, action_history, historyMessages);
-        if (post_payload.statusCode != 200) {
-          console.error("ChatAiPostProcessing failed. post_payload: ", post_payload);
-          if (enable_debug) {
-            ws.send(JSON.stringify({ type: "ai_debug", payload: post_payload }));
+        if (enable_post_processing) {
+          const post_payload = await invokeChatAi(ws, 'ChatAiPostProcessing', next_step_message, username, channel, model_id, system_prompt, action_history, historyMessages);
+          if (post_payload.statusCode != 200) {
+            console.error("ChatAiPostProcessing failed. post_payload: ", post_payload);
+            if (enable_debug) {
+              ws.send(JSON.stringify({ type: "ai_debug", payload: post_payload }));
+            }
+            return;
           }
-          return;
+          next_step_paylod = post_payload;
         }
 
         // Send AI response to client
-        ws.send(JSON.stringify({ type: "ai_response", payload: post_payload }));
+        ws.send(JSON.stringify({ type: "ai_response", payload: next_step_paylod }));
       }
     }
 

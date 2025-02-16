@@ -9,6 +9,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.UIElements;
 using Button = UnityEngine.UI.Button;
+using Toggle = UnityEngine.UI.Toggle;
 
 public class SimpleWebsocketChat : MonoBehaviour
 {
@@ -33,6 +34,8 @@ public class SimpleWebsocketChat : MonoBehaviour
     public Button ResetConversationButton;
     public ScrollRect ChatScrollRect;
     public TMP_Dropdown AiModelDropdown;
+    public Toggle PreProcessingToggle;
+    public Toggle PostProcessingToggle;
 
 
     private bool refreshForNewMessage = false;
@@ -86,6 +89,9 @@ public class SimpleWebsocketChat : MonoBehaviour
         AiModelDropdown.RefreshShownValue();
         AiModelDropdown.onValueChanged.AddListener(OnDropdownValueChanged);
         this.currentAiModel = AiModelDropdown.options[AiModelDropdown.value].text;
+
+        PreProcessingToggle.isOn = true;
+        PostProcessingToggle.isOn = true;
     }
     
     void OnDropdownValueChanged(int index)
@@ -237,6 +243,8 @@ public class SimpleWebsocketChat : MonoBehaviour
         request.payload.system_prompt = this.SystemPromptInput.text;//"现在你正在和其他玩家进行游戏，你和其他玩家在聊天频道中聊天。你是其中的一名玩家。你的性格很搞笑，说话精辟，人狠话不多那种。当其他玩家怀疑你是AI时，你将进入其他话题。";
         request.payload.action_history = this.ActionInput.text;
         request.payload.historyMessages = talkHistory;
+        request.payload.enable_pre_processing = PreProcessingToggle.isOn;
+        request.payload.enable_post_processing = PostProcessingToggle.isOn;
         this.websocketClient.SendMessage(JsonUtility.ToJson(request));
     }
 
