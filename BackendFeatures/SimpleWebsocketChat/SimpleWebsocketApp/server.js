@@ -145,6 +145,7 @@ async function handleMessage(ws, data) {
       const message = parsedData.payload.message;
       const model_id = parsedData.payload.model_id;
       const system_prompt = parsedData.payload.system_prompt;
+      const action_history = parsedData.payload.action_history;
       const historyMessages = parsedData.payload.historyMessages;
 
       let enable_debug = false;
@@ -178,7 +179,7 @@ async function handleMessage(ws, data) {
       if (parsedData.type === "message_ai") {
 
         // 1. Invoke Pre-Processing Lambda
-        const pre_payload = await invokeChatAi(ws, 'ChatAiPreProcessing', message, username, channel, model_id, system_prompt, historyMessages);
+        const pre_payload = await invokeChatAi(ws, 'ChatAiPreProcessing', message, username, channel, model_id, system_prompt, action_history, historyMessages);
         if (pre_payload.statusCode != 200) {
           console.error("ChatAiPreProcessing failed. pre_payload: ", pre_payload);
           if (enable_debug) {
@@ -188,7 +189,7 @@ async function handleMessage(ws, data) {
         }
 
         // 2. Invoke ChatAi Lambda
-        const payload = await invokeChatAi(ws, 'ChatAi', pre_payload.body.response_msg, username, channel, model_id, system_prompt, historyMessages);
+        const payload = await invokeChatAi(ws, 'ChatAi', pre_payload.body.response_msg, username, channel, model_id, system_prompt, action_history, historyMessages);
         if (payload.statusCode != 200) {
           console.error("ChatAi failed. payload: ", payload);
           if (enable_debug) {
@@ -198,7 +199,7 @@ async function handleMessage(ws, data) {
         }
 
         // 3. Invoke Post-Processing Lambda
-        const post_payload = await invokeChatAi(ws, 'ChatAiPostProcessing', payload.body.response_msg, username, channel, model_id, system_prompt, historyMessages);
+        const post_payload = await invokeChatAi(ws, 'ChatAiPostProcessing', payload.body.response_msg, username, channel, model_id, system_prompt, action_history, historyMessages);
         if (post_payload.statusCode != 200) {
           console.error("ChatAiPostProcessing failed. post_payload: ", post_payload);
           if (enable_debug) {
@@ -222,7 +223,7 @@ async function handleMessage(ws, data) {
   }
 }
 
-async function invokeChatAi(ws,functionName, message, username, channel, model_id, system_prompt, historyMessages) {
+async function invokeChatAi(ws,functionName, message, username, channel, model_id, system_prompt, action_history, historyMessages) {
   try {
     const lambda = new AWS.Lambda();
     const lambdaParams = {
@@ -233,6 +234,7 @@ async function invokeChatAi(ws,functionName, message, username, channel, model_i
         channel: channel, 
         model_id: model_id, 
         system_prompt: system_prompt,
+        action_history: action_history,
         historyMessages: historyMessages
       }),
     };

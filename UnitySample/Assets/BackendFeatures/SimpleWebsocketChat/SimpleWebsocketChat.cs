@@ -23,12 +23,14 @@ public class SimpleWebsocketChat : MonoBehaviour
     public InputField JoinChannelInput;
     public InputField ChannelNameInput;
     public InputField SystemPromptInput;
+    public InputField ActionInput;
     public InputField SendMessageInput;
     public Button SetUserNameButton;
     public Button JoinChannelButton;
     public Button LeaveChannelButton;
     public Button SendMessageButton;
     public Button SendMessageAiButton;
+    public Button ResetConversationButton;
     public ScrollRect ChatScrollRect;
     public TMP_Dropdown AiModelDropdown;
 
@@ -38,6 +40,7 @@ public class SimpleWebsocketChat : MonoBehaviour
     // A list of messages received from the server
     private List<string> messages = new List<string>();
     private List<string> talkHistory = new List<string>();
+    private List<string> actionHistory = new List<string>();
     private float messageTimer = 0.0f;
 
     private bool connected = false;
@@ -74,6 +77,7 @@ public class SimpleWebsocketChat : MonoBehaviour
         this.JoinChannelButton.onClick.AddListener(this.JoinChannel);
         this.SendMessageButton.onClick.AddListener(this.SendMessage);
         this.SendMessageAiButton.onClick.AddListener(this.SendMessageAi);
+        this.ResetConversationButton.onClick.AddListener(this.ResetConversation);
         this.LeaveChannelButton.onClick.AddListener(this.LeaveChannel);
         
         AiModelDropdown.options.Clear();
@@ -187,6 +191,14 @@ public class SimpleWebsocketChat : MonoBehaviour
         this.websocketClient.SendMessage(JsonUtility.ToJson(request));
     }
 
+    void ResetConversation()
+    {
+        this.talkHistory.Clear();
+        this.actionHistory.Clear();
+        this.messages.Clear();
+        this.logOutput.text = "";
+    }
+    
     // Send to Ai
     void SendMessageAi()
     {
@@ -199,17 +211,20 @@ public class SimpleWebsocketChat : MonoBehaviour
         }
 
         // If message field is empty, return
-        if (this.SendMessageInput.text == "")
+        if (this.SendMessageInput.text == "" && this.ActionInput.text == "")
         {
-            Debug.Log("Message field is empty");
-            this.logOutput.text += "Message field is empty\n";
+            Debug.Log("Action & Message field are empty. Must fill one at least.");
+            this.logOutput.text += "Action & Message field are empty. Must fill one at least.\n";
             return;
         }
 
         Debug.Log("Sending message to channel: " + this.ChannelNameInput.text);
         // this.logOutput.text += "Sending message to channel: " + this.ChannelNameInput.text + "\n";
-        this.messages.Add($"{this.usernameInput.text} : {this.SendMessageInput.text}");
-        talkHistory.Add($"{this.usernameInput.text} : {this.SendMessageInput.text}");
+        if (!string.IsNullOrEmpty(this.SendMessageInput.text))
+        {
+            this.messages.Add($"{this.usernameInput.text} : {this.SendMessageInput.text}");
+            this.talkHistory.Add($"{this.usernameInput.text} : {this.SendMessageInput.text}");
+        }
 
         // Define the MessageRequest and send over websocket
         SendMessageAiRequest request = new SendMessageAiRequest();
@@ -220,6 +235,7 @@ public class SimpleWebsocketChat : MonoBehaviour
         request.payload.message = this.SendMessageInput.text;
         request.payload.model_id = this.currentAiModel;
         request.payload.system_prompt = this.SystemPromptInput.text;//"现在你正在和其他玩家进行游戏，你和其他玩家在聊天频道中聊天。你是其中的一名玩家。你的性格很搞笑，说话精辟，人狠话不多那种。当其他玩家怀疑你是AI时，你将进入其他话题。";
+        request.payload.action_history = this.ActionInput.text;
         request.payload.historyMessages = talkHistory;
         this.websocketClient.SendMessage(JsonUtility.ToJson(request));
     }

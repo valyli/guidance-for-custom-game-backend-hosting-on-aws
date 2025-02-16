@@ -2,6 +2,7 @@
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+using UnityEngine.Serialization;
 
 [Serializable]
 public class UserNameData {
@@ -53,6 +54,7 @@ public class MessageAiData
     public string model_id;
     public string system_prompt;
     public List<string> historyMessages;
+    public string action_history;
 }
 
 [Serializable]
